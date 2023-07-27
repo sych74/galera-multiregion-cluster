@@ -13,7 +13,6 @@ categories:
   - apps/clusters
 
 baseUrl: https://raw.githubusercontent.com/jelastic-jps/mysql-multiregion/master
-onBeforeInit: /scripts/onBeforeInit.js
 
 settings:
   fields:
@@ -24,9 +23,8 @@ settings:
       selectFirstAvailable: false
       multiSelect: true
       required: true
-      min: 2
-      max: 3
-      tooltip: "Nodes roles will be assigned according to order of selected region: Primary, Primary, Secondary"
+      min: 3
+      max: 5
     
     - type: dockertags
       caption: Database version
@@ -47,7 +45,7 @@ settings:
     - type: string
       name: displayName
       caption: Display Name
-      default: MariaDB Cluster
+      default: MariaDB Galera Cluster
 
 globals:
   db_user: admin-${fn.random}
@@ -105,8 +103,7 @@ actions:
               "db_pswd": "${globals.db_pswd}",
               "repl_user": "${globals.repl_user}",
               "repl_pswd": "${globals.repl_pswd}",
-              "tag": "${settings.tag}",
-              "vpnAppid": "${globals.vpnAppid}"
+              "tag": "${settings.tag}"
             }
           });
         }  
