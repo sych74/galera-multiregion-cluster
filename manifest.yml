@@ -132,7 +132,7 @@ actions:
               "nodes": "${settings.nodes}"
             }
           });
-          if ( 'is_proxysql' == 'true') {
+          if ('${settings.is_proxysql}' == 'true') {
             actions.push({
               jps: "${baseUrl}/scripts/proxysql.jps?_r=${fn.random}",
               envName: "${settings.envName}-lb-" + cluster,
@@ -142,35 +142,13 @@ actions:
               settings: {
                 "db_user": "${globals.db_user}",
                 "db_pass": "${globals.db_pass}",
-                "repl_user": "${globals.repl_user}",
-                "repl_pswd": "${globals.repl_pswd}",
                 "orch_user": "${globals.orch_user}",
                 "orch_pswd": "${globals.orch_pswd}",
-                "vpnAppid": "${globals.vpnAppid}"
               }
             });
           }
         }  
         return { result: 0, onAfterReturn: { 'marketplace.jps.install': actions } };
-
-  setupGlobals:
-    - script: |
-        var regions = '${settings.regions}'.split(','),
-            onAfterReturn = { setGlobals: {} },
-            glbs = onAfterReturn.setGlobals;
-        for (var cluster = 1, n = regions.length + 1; cluster < n; cluster ++) {
-          var resp = jelastic.env.control.GetEnvInfo('${settings.envName}-db-' + cluster, session);
-          if (resp.result != 0) return resp;
-          glbs["dbID-" + cluster] = resp.nodes[0].id;
-          glbs["dbIP-" + cluster] = resp.nodes[0].address;
-        }
-        for (var cluster = 1, n = 2; cluster <= n; cluster ++) {
-          var resp = jelastic.env.control.GetEnvInfo('${settings.envName}-lb-' + cluster, session);
-          if (resp.result != 0) return resp;
-          glbs["lbID-" + cluster] = resp.nodes[0].id;
-          glbs["lbIP-" + cluster] = resp.nodes[0].address;
-        }
-        return { result: 0, onAfterReturn: onAfterReturn };
 
   setupGaleraCluster:
     - install:
