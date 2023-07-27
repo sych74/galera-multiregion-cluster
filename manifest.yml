@@ -76,8 +76,9 @@ settings:
       default: MariaDB Galera Cluster
 
 globals:
+  db_cluster_url: https://raw.githubusercontent.com/jelastic-jps/mysql-cluster/v3.0.0
   db_user: admin-${fn.random}
-  db_pswd: ${fn.password(10)}
+  db_pass: ${fn.password(10)}
   repl_user: repl-${fn.random}
   repl_pswd: ${fn.password(10)}
   orch_user: orch-${fn.random}
@@ -89,6 +90,7 @@ onInstall:
   - env.group.CreateGroup:
       envGroup: "Database cluster ${settings.envName}"
   - createEnvs
+  - setupGaleraCluster
   
 actions:
   initGlobals:
@@ -124,8 +126,6 @@ actions:
             envGroups: "Database cluster ${settings.envName}",
             region: "${globals.region-" + cluster + "}",
             settings: {
-              "db_user": "${globals.db_user}",
-              "db_pswd": "${globals.db_pswd}",
               "repl_user": "${globals.repl_user}",
               "repl_pswd": "${globals.repl_pswd}",
               "tag": "${settings.tag}",
@@ -133,7 +133,6 @@ actions:
             }
           });
           if ( 'is_proxysql' == 'true') {
-
             actions.push({
               jps: "${baseUrl}/scripts/proxysql.jps?_r=${fn.random}",
               envName: "${settings.envName}-lb-" + cluster,
@@ -142,7 +141,7 @@ actions:
               region: "${globals.region-" + cluster + "}",
               settings: {
                 "db_user": "${globals.db_user}",
-                "db_pswd": "${globals.db_pswd}",
+                "db_pass": "${globals.db_pass}",
                 "repl_user": "${globals.repl_user}",
                 "repl_pswd": "${globals.repl_pswd}",
                 "orch_user": "${globals.orch_user}",
@@ -173,23 +172,18 @@ actions:
         }
         return { result: 0, onAfterReturn: onAfterReturn };
 
-  setupReplication:
-    - script: |
-        var DBEnvs = '${globals.DBEnvs}'.split(','), actions = [];
-        for (var i = 0, n = DBEnvs.length; i < n; i ++) {
-          actions.push({
-            jps: "${baseUrl}/scripts/setupReplication.jps?_r=${fn.random}",
-            envName: DBEnvs[i],
-            settings: {
-              "db_user": "${globals.db_user}",
-              "db_pswd": "${globals.db_pswd}",
-              "primary1_ip": "${globals.dbIP-1}",
-              "primary2_ip": "${globals.dbIP-2}"
-            }
-          });
-        }
-        return { result: 0, onAfterReturn: { 'marketplace.jps.install': actions } };
-
+  setupGaleraCluster:
+    - install:
+      - jps: ${baseUrl}/scripts/geoGaleraManager.jps
+        envName: "${settings.envName}-db-1"
+        settings:
+          master_env_name: "${settings.envName}-db-1"
+          db_cluster_url: ${globals.db_cluster_url}
+          db_user: ${globals.db_user}
+          db_pass: ${globals.db_pass}
+          galera_server_id: ${globals.galera_server_id}
+          install_galera_cluster: true
+          
   setupBalancing:
     - script: |
         var ProxySQLEnvs = '${globals.ProxySQLEnvs}'.split(','), actions = [], index;
