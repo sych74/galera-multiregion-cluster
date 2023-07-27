@@ -5,6 +5,7 @@ description: Geo Galera Cluster Manager
 baseUrl: https://raw.githubusercontent.com/sych74/galera-multiregion-cluster/main
 
 globals:
+  master_env_name: ${settings.master_env_name}
   db_cluster_url: ${settings.db_cluster_url}
   galera_server_id: ${settings.galera_server_id}
   galera_segment_id: ${settings.galera_segment_id}
