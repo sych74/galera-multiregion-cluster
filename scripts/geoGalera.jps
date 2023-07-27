@@ -21,6 +21,7 @@ globals:
   galera_conf: "/etc/mysql/conf.d/galera.cnf"
     
 onInstall:
+  - getReplicaUser
   - if ('${globals.install_galera_cluster}' == 'true'):
     - initialSetup:
         id: sqldb
