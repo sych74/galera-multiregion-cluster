@@ -10,8 +10,8 @@ globals:
   path: "${settings.path}"
   galera_server_id: "${settings.galera_server_id}"
   galera_segment_id: "${settings.galera_segment_id}"
-  db_user: "${settings.db_user}"
-  db_pass: "${settings.db_pass}"
+  DB_USER: "${settings.db_user}"
+  DB_PASS: "${settings.db_pass}"
   cluster_name: geo-galera-cluster
   galera_nodes_array: ${settings.galera_nodes_array}
   install_galera_cluster: ${settings.install_galera_cluster:false}
