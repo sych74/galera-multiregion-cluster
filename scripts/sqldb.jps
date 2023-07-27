@@ -4,7 +4,7 @@ name: DataBase Multiregion Topology
 
 nodes:
   - nodeType: mariadb-dockerized
-    count: 1
+    count: ${settings.nodes}
     flexibleCloudlets: 16
     nodeGroup: sqldb
     tag: ${settings.tag}
@@ -43,25 +43,7 @@ globals:
   vpnAppid: ${settings.vpnAppid}
 
 onInstall:
-  - getReplicaUser
-  - getEnvIndex
-  - setGlobals:
-      index: ${response.index}
-  - if (${globals.index} == 1) || (${globals.index} == 2):
-    - api: env.control.SetEnvDisplayName
-      displayName: ${env.envName} Primary-${globals.index} ${env.hostGroup.displayName}
-    - primaryConfiguration: ${globals.index}
-  - else: 
-    - api: env.control.SetEnvDisplayName
-      displayName: ${env.envName} Secondary ${env.hostGroup.displayName}
-    - secondaryConfiguration
-    - if (!/vpnAppid/.test("${globals.vpnAppid}") && '${settings.internalNetworkEnabled}' == 'true'):
-      - install: /vpnNetwork.jps
-        nodeGroup: sqldb
-        settings:
-          vpnAppid: ${globals.vpnAppid}
-  - setupUsers:
-      id: ${nodes.sqldb.master.id}
+- log: test
 
 actions:
   getEnvIndex:
