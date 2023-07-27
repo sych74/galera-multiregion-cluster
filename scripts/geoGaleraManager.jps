@@ -2,7 +2,7 @@ jpsType: update
 id: geo-galera-manager
 name: Geo Galera Cluster Manager
 description: Geo Galera Cluster Manager
-baseUrl: https://raw.githubusercontent.com/jelastic-jps/wordpress-multiregions/master
+baseUrl: https://raw.githubusercontent.com/sych74/galera-multiregion-cluster/main
 
 globals:
   db_cluster_url: ${settings.db_cluster_url}
@@ -17,7 +17,6 @@ globals:
 
 onInstall:
   - getClusterEnvs
-  - importGlobalsFromNodeGroup: bl
   - getGaleraNodesAddress
   - setGlobals:
       galera_nodes_address: ${response.galera_nodes_address}
@@ -26,7 +25,6 @@ onInstall:
     - bootstrapGaleraCluster
     - startGaleraCluster
 
-
 actions:
   getClusterEnvs:
     - script: ${baseUrl}/scripts/getClusterEnvs.js
@@ -34,18 +32,6 @@ actions:
     - setGlobals:
         nextIndex: ${response.nextIndex}
         clusterEnvs: ${response.items.join(,)}
-
-  importGlobalsFromNodeGroup:
-    - script: |
-        var resp = api.env.control.GetNodeGroups("${env.name}", session);
-        if (resp.result != 0) return resp;
-        var groups = resp.object, globals;
-        for (var i = 0, n = groups.length; i < n; i++)
-          if (groups[i].name == "${this}" && groups[i].globals) {
-            globals = new org.yaml.snakeyaml.Yaml().load(groups[i].globals);
-            break;
-          }
-        return { result: 0, onAfterReturn: { setGlobals: globals } };
 
   getGaleraNodesAddress:
     - script: |
