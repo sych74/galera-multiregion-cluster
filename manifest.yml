@@ -90,7 +90,8 @@ onInstall:
   - env.group.CreateGroup:
       envGroup: "Database cluster ${settings.envName}"
   - createEnvs
-  - setupGaleraCluster
+  - getClusterEnvs
+  - setupClusters
   
 actions:
   initGlobals:
@@ -150,35 +151,31 @@ actions:
         }  
         return { result: 0, onAfterReturn: { 'marketplace.jps.install': actions } };
 
-  setupGaleraCluster:
-    - install:
-      - jps: ${baseUrl}/scripts/geoGaleraManager.jps
-        envName: "${settings.envName}-db-1"
-        settings:
-          master_env_name: "${settings.envName}-db-1"
-          db_cluster_url: ${globals.db_cluster_url}
-          db_user: ${globals.db_user}
-          db_pass: ${globals.db_pass}
-          galera_server_id: ${globals.galera_server_id}
-          install_galera_cluster: true
-          
-  setupBalancing:
+  setupClusters:
     - script: |
-        var ProxySQLEnvs = '${globals.ProxySQLEnvs}'.split(','), actions = [], index;
+        var ProxySQLEnvs = '${globals.ProxySQLEnvs}'.split(','), actions = [];;
         for (var i = 0, n = ProxySQLEnvs.length; i < n; i ++) {
           actions.push({
-            jps: "${baseUrl}/scripts/setupProxySQL.jps?_r=${fn.random}",
+            jps: "${baseUrl}/scripts/geoProxyManager.jps?_r=${fn.random}",
             envName: ProxySQLEnvs[i],
             settings: {
-              "primary": "true",
-              "write_server_ip-1": "${globals.dbIP-1}",
-              "write_server_ip-2": "${globals.dbIP-2}",
-              "read_server_ip-1": "${globals.dbIP-1}",
-              "read_server_ip-2": "${globals.dbIP-2}",
+              "env_name": "${settings.envName}"
             }
           });
         }
-        return { result: 0, onAfterReturn: { 'marketplace.jps.install': actions } };
+        actions.push({
+          jps: "${baseUrl}/scripts/geoGaleraManager.jps?_r=${fn.random}",
+          envName: "${settings.envName}-db-1",
+          settings: {
+            "master_env_name": "${settings.envName}-db-1",
+            "db_cluster_url": "${globals.db_cluster_url}",
+            "db_user": "${globals.db_user}",
+            "db_pass": "${globals.db_pass}",
+            "galera_server_id": "${globals.galera_server_id}",
+            "install_galera_cluster": "true"
+          }
+        });       
+        return { result: 0, onAfterReturn: { 'marketplace.jps.install': actions } };          
 
   getClusterEnvs:
     - script: ${baseUrl}/scripts/getClusterEnvs.js
