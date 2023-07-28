@@ -24,7 +24,7 @@ settings:
       multiSelect: true
       required: true
       min: 3
-      max: 5
+      max: 3
     
     - type: dockertags
       caption: Database version
@@ -92,6 +92,7 @@ onInstall:
   - createEnvs
   - getClusterEnvs
   - setupClusters
+  - setupGlobals
   
 actions:
   initGlobals:
@@ -176,6 +177,26 @@ actions:
           }
         });       
         return { result: 0, onAfterReturn: { 'marketplace.jps.install': actions } };          
+
+  setupGlobals:
+    - script: |
+        var regions = '${settings.regions}'.split(','),
+            onAfterReturn = { setGlobals: {} },
+            glbs = onAfterReturn.setGlobals;
+        for (var cluster = 1, n = regions.length + 1; cluster < n; cluster ++) {
+          var resp = jelastic.env.control.GetEnvInfo('${settings.envName}-db-' + cluster, session);
+          if (resp.result != 0) return resp;
+          glbs["dbID-" + cluster] = resp.nodes[0].id;
+          glbs["dbIP-" + cluster] = resp.nodes[0].address;
+        }
+        for (var cluster = 1, n = 2; cluster <= n; cluster ++) {
+          var resp = jelastic.env.control.GetEnvInfo('${settings.envName}-lb-' + cluster, session);
+          if (resp.result != 0) return resp;
+          glbs["lbID-" + cluster] = resp.nodes[0].id;
+          glbs["lbIP-" + cluster] = resp.nodes[0].address;
+        }
+        return { result: 0, onAfterReturn: onAfterReturn };
+
 
   getClusterEnvs:
     - script: ${baseUrl}/scripts/getClusterEnvs.js
