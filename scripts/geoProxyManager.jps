@@ -1,0 +1,68 @@
+jpsType: update
+id: geo-galera-proxysql-manager
+name: ProxySQL for multiregion Galera Cluster
+description: Geo Galera Cluster Manager
+baseUrl: https://raw.githubusercontent.com/sych74/galera-multiregion-cluster/main
+
+globals:
+  env_name: env-9787252
+
+onInstall:
+  - getClusterEnvs
+  - setupBalancing
+
+actions:
+  
+  getClusterEnvs:
+    - script: ${baseUrl}/scripts/getClusterEnvs.js
+      envName: ${globals.env_name}-db-1
+    - setGlobals:
+        DBEnvs: ${response.items.join(,)}
+    - script: ${baseUrl}/scripts/getClusterEnvs.js
+      envName: ${globals.env_name}-lb-1
+    - setGlobals:
+        ProxySQLEnvs: ${response.items.join(,)}
+
+
+  setupBalancing:
+    - script: |
+        function getIndex(envName){
+          var envNameSeparator = "-", index, tmp;
+          tmp = envName.split(envNameSeparator);
+          index = tmp.pop();
+          if (/\d+/.test(index)) {
+            index = parseInt(index, 10);
+          } else {
+            index = null;
+          }        
+          return index;
+        }  
+    
+        var ProxySQLEnvs = '${globals.ProxySQLEnvs}'.split(',');
+        var DBEnvs = '${globals.DBEnvs}'.split(',');
+        var actions = [], galera_nodes_address = "", weight, resp;
+        for (var i = 0, n = ProxySQLEnvs.length; i < n; i ++) {
+          for (var k = 0, l = DBEnvs.length; k < l; k ++) {
+            galera_nodes_address = "";
+            resp = jelastic.env.control.GetEnvInfo(DBEnvs[k], session);
+            if (resp.result != 0) return resp;
+            for (var x = 0, y = resp.nodes; x < y.length; x++) {
+              if (y[x].nodeGroup == 'sqldb') {
+                galera_nodes_address += y[x].address + ",";
+              }
+            }
+            
+            galera_nodes_address = galera_nodes_address.slice(0, -1);
+            weight = getIndex(DBEnvs[k]) == getIndex(ProxySQLEnvs[i]) ? 10000 : 1;
+            
+            actions.push({
+              jps: "${baseUrl}/scripts/setupProxySQL.jps?_r=${fn.random}",
+              envName: ProxySQLEnvs[i],
+              settings: {
+                "galera_nodes_address": galera_nodes_address,
+                "weight": weight
+              }
+            });
+          }
+        }
+        return { result: 0, onAfterReturn: { 'marketplace.jps.install': actions } };
