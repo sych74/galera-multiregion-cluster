@@ -23,7 +23,6 @@ actions:
     - setGlobals:
         ProxySQLEnvs: ${response.items.join(,)}
 
-
   setupBalancing:
     - script: |
         function getIndex(envName){
@@ -38,31 +37,23 @@ actions:
           return index;
         }  
     
-        var ProxySQLEnvs = '${globals.ProxySQLEnvs}'.split(',');
         var DBEnvs = '${globals.DBEnvs}'.split(',');
-        var actions = [], galera_nodes_address = "", weight, resp;
-        for (var i = 0, n = ProxySQLEnvs.length; i < n; i ++) {
-          for (var k = 0, l = DBEnvs.length; k < l; k ++) {
-            galera_nodes_address = "";
-            resp = jelastic.env.control.GetEnvInfo(DBEnvs[k], session);
-            if (resp.result != 0) return resp;
-            for (var x = 0, y = resp.nodes; x < y.length; x++) {
-              if (y[x].nodeGroup == 'sqldb') {
-                galera_nodes_address += y[x].address + ",";
-              }
+        var cmd1, cmd2 = "MYSQL_PWD=admin mysql -h 127.0.0.1 -P6032 -uadmin -e \"LOAD MYSQL SERVERS TO RUNTIME; SAVE MYSQL SERVERS TO DISK;\"";
+        var actions = [], galera_nodes_address = "", weight, nodes, envInfo, execCmd;
+        for (var k = 0, l = DBEnvs.length; k < l; k ++) {
+          weight = getIndex(DBEnvs[k]) == getIndex('${env.envName}') ? 10000 : 1;
+          envInfo = jelastic.env.control.GetEnvInfo(DBEnvs[k], session);
+          if (envInfo.result != 0) return envInfo;
+          for (var i = 0, nodes = envInfo.nodes; i < nodes.length; i++) {
+            if (nodes[i].nodeGroup == 'sqldb') {
+              cmd1 = "MYSQL_PWD=admin mysql -h 127.0.0.1 -P6032 -uadmin -e \"INSERT INTO mysql_servers (hostgroup_id, port, hostname, weight) VALUES (2, 3306, '" + nodes[i].address + "'," + weight + ");\"";
+              execCmd =  api.environment.control.ExecCmdByGroup({
+                envName: '${env.envName}', 
+                nodeGroup: 'proxysql',
+                commandList: toJSON([{"command": cmd1}, {"command": cmd2}])
+              });
+              if (execCmd.result != 0) return execCmd;
             }
-            
-            galera_nodes_address = galera_nodes_address.slice(0, -1);
-            weight = getIndex(DBEnvs[k]) == getIndex(ProxySQLEnvs[i]) ? 10000 : 1;
-            
-            actions.push({
-              jps: "${baseUrl}/scripts/setupProxySQL.jps?_r=${fn.random}",
-              envName: ProxySQLEnvs[i],
-              settings: {
-                "galera_nodes_address": galera_nodes_address,
-                "weight": weight
-              }
-            });
           }
         }
-        return { result: 0, onAfterReturn: { 'marketplace.jps.install': actions } };
+        return { result: 0 };
