@@ -144,8 +144,10 @@ actions:
               settings: {
                 "db_user": "${globals.db_user}",
                 "db_pass": "${globals.db_pass}",
+                "repl_user": "${globals.repl_user}",
+                "repl_pswd": "${globals.repl_pswd}",
                 "orch_user": "${globals.orch_user}",
-                "orch_pswd": "${globals.orch_pswd}",
+                "orch_pswd": "${globals.orch_pswd}"
               }
             });
           }
