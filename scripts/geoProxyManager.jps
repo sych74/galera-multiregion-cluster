@@ -5,7 +5,7 @@ description: Geo Galera Cluster Manager
 baseUrl: https://raw.githubusercontent.com/sych74/galera-multiregion-cluster/main
 
 globals:
-  env_name: env-9787252
+  env_name: ${settings.env_name}
 
 onInstall:
   - getClusterEnvs
