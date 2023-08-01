@@ -93,6 +93,12 @@ onInstall:
   - getClusterEnvs
   - setupClusters
   - setupGlobals
+  - if ('${settings.is_proxysql}' == 'true'):
+      setGlobals:
+        success: proxysql
+  - else:
+      setGlobals:
+        success: sqldb    
   
 actions:
   initGlobals:
@@ -157,14 +163,16 @@ actions:
   setupClusters:
     - script: |
         var ProxySQLEnvs = '${globals.ProxySQLEnvs}'.split(','), actions = [];;
-        for (var i = 0, n = ProxySQLEnvs.length; i < n; i ++) {
-          actions.push({
-            jps: "${baseUrl}/scripts/geoProxyManager.jps?_r=${fn.random}",
-            envName: ProxySQLEnvs[i],
-            settings: {
-              "env_name": "${settings.envName}"
-            }
-          });
+        if ('${settings.is_proxysql}' == 'true') {
+          for (var i = 0, n = ProxySQLEnvs.length; i < n; i ++) {
+            actions.push({
+              jps: "${baseUrl}/scripts/geoProxyManager.jps?_r=${fn.random}",
+              envName: ProxySQLEnvs[i],
+              settings: {
+                "env_name": "${settings.envName}"
+              }
+            });
+          }
         }
         actions.push({
           jps: "${baseUrl}/scripts/geoGaleraManager.jps?_r=${fn.random}",
@@ -191,14 +199,15 @@ actions:
           glbs["dbID-" + cluster] = resp.nodes[0].id;
           glbs["dbIP-" + cluster] = resp.nodes[0].address;
         }
-        for (var cluster = 1, n = regions.length + 1; cluster < n; cluster ++) {
-          var resp = jelastic.env.control.GetEnvInfo('${settings.envName}-lb-' + cluster, session);
-          if (resp.result != 0) return resp;
-          glbs["lbID-" + cluster] = resp.nodes[0].id;
-          glbs["lbIP-" + cluster] = resp.nodes[0].address;
+        if ('${settings.is_proxysql}' == 'true') {
+          for (var cluster = 1, n = regions.length + 1; cluster < n; cluster ++) {
+            var resp = jelastic.env.control.GetEnvInfo('${settings.envName}-lb-' + cluster, session);
+            if (resp.result != 0) return resp;
+            glbs["lbID-" + cluster] = resp.nodes[0].id;
+            glbs["lbIP-" + cluster] = resp.nodes[0].address;
+          }
         }
         return { result: 0, onAfterReturn: onAfterReturn };
-
 
   getClusterEnvs:
     - script: ${baseUrl}/scripts/getClusterEnvs.js
@@ -211,5 +220,5 @@ actions:
         ProxySQLEnvs: ${response.items.join(,)}
 
 success:
-  email: /success/success.md?_r=${fn.random}
-  text: /success/success.md?_r=${fn.random}
+  email: /success/${globals.success}.md?_r=${fn.random}
+  text: /success/${globals.success}.md?_r=${fn.random}
